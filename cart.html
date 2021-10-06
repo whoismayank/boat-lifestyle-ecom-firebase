@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boat</title>
+    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div>
+        <nav class="bg-black container mx-auto flex items-center justify-between py-3 px-2">
+            <a href="/">
+                <img class="h-10"
+                    src="https://cdn.shopify.com/s/files/1/0057/8938/4802/files/Boat-Logo_200x.png?v=1600753267" alt="">
+            </a>
+            <ul class="text-white flex items-center">
+                <li>
+                    <a href="/">Home</a>
+                </li>
+                <li class="ml-6">
+                    <a href="/cart">
+                        <div class="cartBtn">
+                            <span id="cart_item_count_text">0</span>
+                            <img class="ml-2 text"
+                                src="https://raw.githubusercontent.com/whoismayank/React-cart/main/public/images/cart.png"
+                                alt="cart" />
+                        </div>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <!-- cart list -->
+        <div class="container mx-auto lg:w-1/2 w-full pb-4">
+            <h1 class="my-12 font-bold">Cart items</h1>
+            <ul class="cart_wrap">
+
+            </ul>
+        </div>
+        <div class="container  mx-auto lg:w-1/2 w-full pb-24 ">
+            <hr>
+            <div class="flex justify-between mt-4">
+                <p class="font-bold">Total: $ <span id="total_amount">0</span></p>
+                <p class="font-bold"><a href="./checkout.html" class="bg-black text-white rounded-full px-4 py-2">Checkout</a></p>
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>
+<script>
+    'use strict';
+    let cart_item_count = 0;
+    let total_amount = 10;
+    const total_amount_el = document.getElementById('total_amount');
+    const cart_item_count_text = document.querySelector('#cart_item_count_text');
+
+    const loadProducts = async () => {
+        const url = `https://fakestoreapi.com/products`;
+        try {
+            const resJson = await fetch(url);
+            const resObj = await resJson.json();
+            return resObj;
+        } catch (err) {
+            return err;
+        }
+    }
+    const loadCartItems = async () => {
+        let cart = [];
+        try {
+            cart = await localStorage.getItem('boat_cart') ? JSON.parse(localStorage.getItem('boat_cart')) : [];
+        } catch (error) { }
+        return cart;
+    }
+
+    const updateCart = async (btn) => {
+        const product_id = btn.getAttribute('data-id');
+        const actionType = btn.getAttribute('data-action');
+        const cart = await loadCartItems();
+        const quantity = 1;
+        if (actionType === 'delete') {
+            const new_cart = cart.filter((cart_item) => +cart_item.product_id !== +product_id);
+            localStorage.setItem('boat_cart', JSON.stringify(new_cart));
+            location.reload();
+        } else if (actionType === 'add_quantity') {
+            const index = cart.findIndex((cart_item) => +cart_item.product_id === +product_id);
+            cart[index].quantity += quantity;
+            localStorage.setItem('boat_cart', JSON.stringify(cart));
+            location.reload();
+        } else if (actionType === 'remove_quantity') {
+            const index = cart.findIndex((cart_item) => +cart_item.product_id === +product_id);
+            cart[index].quantity -= quantity;
+            if (cart[index].quantity == 0) {
+                cart.splice(index, 1);
+            }
+            localStorage.setItem('boat_cart', JSON.stringify(cart));
+            location.reload();
+        }
+
+    }
+    const cart_wrap = document.querySelector('.cart_wrap');
+    window.addEventListener('DOMContentLoaded', async (event) => {
+        // update cart cart_item_count code start
+        const cart = await loadCartItems();
+        cart_item_count = await cart.reduce((previousValue, cart_item) => +previousValue + +(cart_item.quantity), 0);
+        cart_item_count_text.textContent = cart_item_count;
+        // total_amount = await cart.reduce((previousValue, cart_item) => +previousValue + (cart_item.quantity*cart_item.price),0);
+
+        // update cart cart_item_count code end        
+        (async () => {
+            try {
+                const cart = await loadCartItems();
+                if (cart.length) {
+                    const final_products = await loadProducts();
+                    for await (let cart_item of cart) {
+                        const id = cart_item.product_id;
+                        const quantity = cart_item.quantity;
+                        const product = final_products.filter(product => String(product.id) === String(id))[0];
+                        const product_price = product.price;
+                        total_amount += product_price*quantity;
+                        const content = ` <li class="mb-12" key="">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <img class="h-16" src="${product.image}"  alt="" />
+                            <span class="font-bold ml-4 w-48 product_title">${product.title}</span>
+                        </div>
+                        <div>
+                           <button data-id="${id}" data-action="remove_quantity" class="bg-yellow-500 px-4 py-2 rounded-full leading-none" onClick="updateCart(this);">-</button>
+                           <b class="px-4">${quantity}</b>
+                           <button data-id="${id}" data-action="add_quantity" class="bg-yellow-500 px-4 py-2 rounded-full leading-none" onClick="updateCart(this);">+</button>
+                        </div>
+                        <span>$ ${product.price}</span>
+                        <button data-id="${id}" data-action="delete" class="bg-red-500 px-4 py-2 rounded-full leading-none text-white" onClick="updateCart(this);">Delete</button>
+                    </div>
+                </li>  `;
+                        cart_wrap.insertAdjacentHTML('beforeend', content);
+                    }
+                total_amount_el.textContent = total_amount;
+                } else {
+                    cart_wrap.insertAdjacentHTML('beforeend', '<p class="text-center">No item in cart</p>');
+                }
+
+            } catch (err) {
+                console.log(err);
+            }
+        })();
+
+    });
+</script>

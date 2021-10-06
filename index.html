@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boat</title>
+    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/7.11.0/firebase-app.js"></script>
+    <!-- <script src="https://www.gstatic.com/firebasejs/7.11.0/firebase-firestore.js"></script> -->
+    <!-- <script src="https://www.gstatic.com/firebasejs/7.11.0/firebase-functions.js"></script> -->
+    <script src="https://www.gstatic.com/firebasejs/7.11.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.11.0/firebase-analytics.js"></script>
+    <script src="./firebase.js"></script>
+</head>
+
+<body>
+    <nav class="bg-black container mx-auto flex items-center justify-between py-3 px-2">
+        <a href="/">
+            <img class="h-10"
+                src="https://cdn.shopify.com/s/files/1/0057/8938/4802/files/Boat-Logo_200x.png?v=1600753267" alt="">
+        </a>
+        <ul class="text-white flex items-center">
+            <li>
+                <a href="/">Home</a>
+            </li>
+            <li class="ml-6">
+                <button id="login_logout_btn" class="rounded-full bg-white text-black p-1 px-10"
+                    onclick="toggleModal()">Login</button>
+            </li>
+            <li class="ml-6">
+                <a href="./cart.html">
+                    <div class="cartBtn">
+                        <span id="cart_item_count_text">0</span>
+                        <img class="ml-2 text"
+                            src="https://raw.githubusercontent.com/whoismayank/React-cart/main/public/images/cart.png"
+                            alt="cart" />
+                    </div>
+                </a>
+            </li>
+
+        </ul>
+    </nav>
+
+    <div class="hero py-16">
+        <div class="px-4 border container mx-auto flex items-center justify-between">
+            <div class="w-1/2">
+                <h6 class="text-lg"><em>WIRELESS EARBUDS</em></h6>
+                <h1 class="text-3xl md:text-6xl font-bold">BOAT Airdopes 491 - Wireless Earbuds
+                </h1>
+                <!-- <button class="px-6 my-2 py-2 rounded-full text-white font-bold mt-4 bg-yellow-500 hover:bg-yellow-600">Order now</button> -->
+            </div>
+            <div class="w-1/2">
+                <img class="w-4/5"
+                    src="https://cdn.shopify.com/s/files/1/0057/8938/4802/products/main2_1_720x.png?v=1623738250"
+                    alt="airdop" />
+            </div>
+        </div>
+    </div>
+
+    <!-- show products -->
+    <div class="pb-24 container mx-auto ">
+        <h1 class="text-lg font-bold my-8">Products</h1>
+        <!-- append products from api -->
+        <div class="grid grid-cols-5 my-8 gap-24 products_wrap"></div>
+    </div>
+    </div>
+
+    <!-- login modal code start -->
+    <div class="fixed z-10 overflow-y-auto top-0 w-full left-0 hidden" id="modal">
+        <div class="flex items-center justify-center min-height-100vh pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity">
+                <div class="absolute inset-0 bg-gray-900 opacity-75" />
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+            <div class="inline-block align-center bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+                role="dialog" aria-modal="true" aria-labelledby="modal-headline">
+
+                <form action="" id="login-form">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <label>Email</label>
+                        <input id="login-email" name="email" type="text"
+                            class="border border-gray-400 w-full bg-gray-100 p-2 mt-2 mb-3" />
+                        <label>Password</label>
+                        <input id="login-password" name="password" type="text"
+                            class="border border-gray-400 w-full bg-gray-100 p-2 mt-2 mb-3" />
+                    </div>
+                    <div class="bg-gray-200 px-4 py-3 text-right">
+                        <button type="button" class="py-2 px-4 bg-gray-500 text-white rounded hover:bg-gray-700 mr-2"
+                            onclick="toggleModal()"><i class="fas fa-times"></i> Cancel</button>
+                        <button type="submit" class="py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-700 mr-2"><i
+                                class="fas fa-plus"></i> Login</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- login modal code end -->
+</body>
+
+</html>
+<script>
+    'use strict';
+    var boat_user_email = '';
+    const products_wrap = document.querySelector('.products_wrap');
+    const login_logout_btn = document.querySelector('#login_logout_btn');
+    const cart = localStorage.getItem('boat_cart') ? JSON.parse(localStorage.getItem('boat_cart')) : [];
+    let cart_item_count = 0;
+    const cart_item_count_text = document.querySelector('#cart_item_count_text');
+    const loadProducts = async () => {
+        const url = `https://fakestoreapi.com/products`;
+        try {
+            const resJson = await fetch(url);
+            const resObj = await resJson.json();
+            return resObj;
+        } catch (err) {
+            return err;
+        }
+    }
+    window.addEventListener('DOMContentLoaded', (event) => {
+        boat_user_email = localStorage.getItem('boat_user_email');
+        if (boat_user_email) {
+            login_logout_btn.textContent = 'Log out';
+        }
+        // update cart cart_item_count code start
+        cart_item_count = cart.reduce((previousValue, cart_item) => +previousValue + +(cart_item.quantity), 0);
+        cart_item_count_text.textContent = cart_item_count;
+        // update cart cart_item_count code end
+        (async () => {
+            try {
+                const final_products = await loadProducts();
+                console.log(final_products);
+                for await (let product of final_products) {
+                    const content = `<div class="px-10 text-center rounded overflow-hidden shadow-lg">
+    <img  src="${product.image}"
+        class="w-full" alt="pizza" />
+    <h2 class="text-sm font-bold py-2 ">${product.title}</h2>
+    <span class="bg-gray-200 py-1 rounded-full text-sm px-4">small</span>
+    <div class="flex justify-between  items-center mt-4">
+        <span>$${product.price}</span>
+        <button data-product_id="${product.id}" class="bg-red-500 py-1 px-4 rounded-full font-bold btn_add_to_cart" onclick="addToCart(this)">ADD</button>
+    </div>
+    <p class="rounded-full bg-gray-200 mt-4 mb-2">Rating: ${product.rating.rate}</p>
+
+</div>`;
+                    products_wrap.insertAdjacentHTML('beforeend', content);
+                }
+            } catch (err) {
+                console.log(err);
+            }
+        })();
+    });
+
+    function toggleModal() {
+        let login_logout_btn_type = login_logout_btn.textContent || login_logout_btn.innerText;
+        // logout user
+        if (login_logout_btn_type !== 'Log out') {
+            document.getElementById('modal').classList.toggle('hidden')
+        } else {
+            localStorage.removeItem('boat_uid');
+            localStorage.removeItem('boat_user_email');
+            alert(`successfully logged out`);
+            location.reload();
+        }
+    }
+
+    //login/logout user
+    const loginForm = document.querySelector("#login-form");
+    loginForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        //get user info
+        const email = loginForm["login-email"].value;
+        const password = loginForm["login-password"].value;
+        console.log(email, password);
+        auth
+            .signInWithEmailAndPassword(email, password)
+            .then((data) => {
+                // console.log(data.user.uid);
+                localStorage.setItem('boat_uid', data.user.uid);
+                localStorage.setItem('boat_user_email', email);
+                loginForm.reset();
+                alert('successfully logged in')
+                location.reload();
+            })
+            .catch((err) => {
+                if (err.code == 'auth/user-not-found') {
+                    auth // we'll get the email and password from input fields
+                        .createUserWithEmailAndPassword(email, password)
+                        .then((data) => {
+                            // console.log(data);
+                            // we will need this uid to specify every user
+                            return data.user.uid;
+                        })
+                        .then((uid) => {
+                            console.log(uid);
+                            localStorage.setItem('boat_uid', uid);
+                            localStorage.setItem('boat_user_email', email);
+                            loginForm.reset();
+                            alert('successfully logged in')
+                            location.reload();
+                        })
+                } else {
+                    alert(err.message);
+                }
+            });
+    });
+    // add to cart code start 
+    function addToCart(btn) {
+        const product_id = btn.getAttribute('data-product_id');
+        const index = cart.findIndex((cart_item) => +cart_item.product_id === +product_id);
+        const quantity = 1;
+        if (index > -1) {
+            cart[index].quantity += quantity;
+        } else {
+            cart.push({ product_id, quantity });
+        }
+        localStorage.setItem('boat_cart', JSON.stringify(cart));
+        alert(`Product added into cart`);
+        location.reload();
+    }
+    // add to cart code end
+</script>
