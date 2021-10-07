@@ -12,8 +12,10 @@
     <!-- <script src="https://www.gstatic.com/firebasejs/7.11.0/firebase-firestore.js"></script> -->
     <!-- <script src="https://www.gstatic.com/firebasejs/7.11.0/firebase-functions.js"></script> -->
     <script src="https://www.gstatic.com/firebasejs/7.11.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/7.11.0/firebase-analytics.js"></script>
+    <script src="/checkout?discount=https://www.gstatic.com/firebasejs/7.11.0/firebase-analytics.js"></script>
     <script src="./firebase.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>    
 </head>
 
 <body>
@@ -104,8 +106,8 @@
 <script>
     'use strict';
     var boat_user_email = '';
-    const products_wrap = document.querySelector('.products_wrap');
     const login_logout_btn = document.querySelector('#login_logout_btn');
+    const products_wrap = document.querySelector('.products_wrap');
     const cart = localStorage.getItem('boat_cart') ? JSON.parse(localStorage.getItem('boat_cart')) : [];
     let cart_item_count = 0;
     const cart_item_count_text = document.querySelector('#cart_item_count_text');
@@ -173,7 +175,6 @@
         //get user info
         const email = loginForm["login-email"].value;
         const password = loginForm["login-password"].value;
-        console.log(email, password);
         auth
             .signInWithEmailAndPassword(email, password)
             .then((data) => {

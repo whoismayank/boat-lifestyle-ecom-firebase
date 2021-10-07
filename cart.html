@@ -7,6 +7,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Boat</title>
     <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/7.11.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.11.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.11.0/firebase-analytics.js"></script>   
+    <script src="./firebase.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -22,7 +28,11 @@
                     <a href="/">Home</a>
                 </li>
                 <li class="ml-6">
-                    <a href="/cart">
+                    <button id="login_logout_btn" class="rounded-full bg-white text-black p-1 px-10"
+                        onclick="toggleModal()">Login</button>
+                </li>                
+                <li class="ml-6">
+                    <a href="/cart.html">
                         <div class="cartBtn">
                             <span id="cart_item_count_text">0</span>
                             <img class="ml-2 text"
@@ -44,21 +54,78 @@
             <hr>
             <div class="flex justify-between mt-4">
                 <p class="font-bold">Total: $ <span id="total_amount">0</span></p>
-                <p class="font-bold"><a href="./checkout.html" class="bg-black text-white rounded-full px-4 py-2">Checkout</a></p>
+                <p class="font-bold"><button id="btn_checkout" class="bg-black text-white rounded-full px-4 py-2">Checkout</button></p>
             </div>
         </div>
 
     </div>
+    <!-- login modal code start -->
+    <div class="fixed z-10 overflow-y-auto top-0 w-full left-0 hidden" id="modal">
+        <div class="flex items-center justify-center min-height-100vh pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity">
+                <div class="absolute inset-0 bg-gray-900 opacity-75" />
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+            <div class="inline-block align-center bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+                role="dialog" aria-modal="true" aria-labelledby="modal-headline">
+
+                <form action="" id="login-form">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <label>Email</label>
+                        <input id="login-email" name="email" type="text"
+                            class="border border-gray-400 w-full bg-gray-100 p-2 mt-2 mb-3" />
+                        <label>Password</label>
+                        <input id="login-password" name="password" type="text"
+                            class="border border-gray-400 w-full bg-gray-100 p-2 mt-2 mb-3" />
+                    </div>
+                    <div class="bg-gray-200 px-4 py-3 text-right">
+                        <button type="button" class="py-2 px-4 bg-gray-500 text-white rounded hover:bg-gray-700 mr-2"
+                            onclick="toggleModal()"><i class="fas fa-times"></i> Cancel</button>
+                        <button type="submit" class="py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-700 mr-2"><i
+                                class="fas fa-plus"></i> Login</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- login modal code end -->    
 </body>
 
 </html>
 <script>
     'use strict';
     let cart_item_count = 0;
-    let total_amount = 10;
+    let total_amount = 0;
+    var boat_user_email = '';
+    const login_logout_btn = document.querySelector('#login_logout_btn');    
     const total_amount_el = document.getElementById('total_amount');
     const cart_item_count_text = document.querySelector('#cart_item_count_text');
-
+    const cart_wrap = document.querySelector('.cart_wrap');
+    const btn_checkout = document.querySelector('#btn_checkout');
+    const showAlert = (msg,type) => {
+        let color = 'green';
+        if(type == 'error') {
+        color = 'red';
+        }
+        Toastify({  
+        text: msg,
+        backgroundColor:color,    
+        gravity: "bottom", // `top` or `bottom`
+        duration: 3000
+    }).showToast();     
+    }
+    function toggleModal() {
+        let login_logout_btn_type = login_logout_btn.textContent || login_logout_btn.innerText;
+        // logout user
+        if (login_logout_btn_type !== 'Log out') {
+            document.getElementById('modal').classList.toggle('hidden')
+        } else {
+            localStorage.removeItem('boat_uid');
+            localStorage.removeItem('boat_user_email');
+            showAlert('successfully logged out','success');    
+            location.reload();
+        }
+    }    
     const loadProducts = async () => {
         const url = `https://fakestoreapi.com/products`;
         try {
@@ -76,7 +143,45 @@
         } catch (error) { }
         return cart;
     }
-
+   //login/logout user
+   const loginForm = document.querySelector("#login-form");
+    loginForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        //get user info
+        const email = loginForm["login-email"].value;
+        const password = loginForm["login-password"].value;
+        auth
+            .signInWithEmailAndPassword(email, password)
+            .then((data) => {
+                // console.log(data.user.uid);
+                localStorage.setItem('boat_uid', data.user.uid);
+                localStorage.setItem('boat_user_email', email);
+                loginForm.reset();
+                showAlert('successfully logged in','success');    
+                location.reload();
+            })
+            .catch((err) => {
+                if (err.code == 'auth/user-not-found') {
+                    auth // we'll get the email and password from input fields
+                        .createUserWithEmailAndPassword(email, password)
+                        .then((data) => {
+                            // console.log(data);
+                            // we will need this uid to specify every user
+                            return data.user.uid;
+                        })
+                        .then((uid) => {
+                            console.log(uid);
+                            localStorage.setItem('boat_uid', uid);
+                            localStorage.setItem('boat_user_email', email);
+                            loginForm.reset();
+                            showAlert('successfully logged in','success');    
+                            location.reload();
+                        })
+                } else {
+                    showAlert(err.message,'error');    
+                }
+            });
+    });
     const updateCart = async (btn) => {
         const product_id = btn.getAttribute('data-id');
         const actionType = btn.getAttribute('data-action');
@@ -102,14 +207,16 @@
         }
 
     }
-    const cart_wrap = document.querySelector('.cart_wrap');
     window.addEventListener('DOMContentLoaded', async (event) => {
+        boat_user_email = localStorage.getItem('boat_user_email');
+        if (boat_user_email) {
+            login_logout_btn.textContent = 'Log out';
+        }        
         // update cart cart_item_count code start
         const cart = await loadCartItems();
         cart_item_count = await cart.reduce((previousValue, cart_item) => +previousValue + +(cart_item.quantity), 0);
         cart_item_count_text.textContent = cart_item_count;
         // total_amount = await cart.reduce((previousValue, cart_item) => +previousValue + (cart_item.quantity*cart_item.price),0);
-
         // update cart cart_item_count code end        
         (async () => {
             try {
@@ -139,15 +246,24 @@
                 </li>  `;
                         cart_wrap.insertAdjacentHTML('beforeend', content);
                     }
-                total_amount_el.textContent = total_amount;
+                total_amount_el.textContent = total_amount.toFixed(2);
                 } else {
                     cart_wrap.insertAdjacentHTML('beforeend', '<p class="text-center">No item in cart</p>');
                 }
-
             } catch (err) {
                 console.log(err);
             }
         })();
-
     });
+
+
+    // redirect to checkout Page
+    btn_checkout.addEventListener('click', async function() {
+        if(!boat_user_email){
+            showAlert('Please login to checkout','error');    
+            toggleModal();
+            return; 
+        }
+        window.location.href="./checkout.html";
+    })
 </script>

@@ -349,37 +349,14 @@
               </div>
             </div>
             <div class="block px-10">
-              <button type="button" class="bg-black text-white p-4 px-10">Checkout</button>
+              <button  onclick="proceedCheckout()" type="button" class="bg-black text-white p-4 px-10">Checkout</button>
               <a class="ml-10 text-red-800" href="./cart.html">Return to cart</a>
-
             </div>
           </form>
         </div>
         <div class="px-10">
           <div class="">
             <ul class="cart_wrap">
-              <li class="mb-12" key="">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center">
-                    <div class="relative border p-4">
-                      <div class="absolute bg-black" text-white rounded-full -top-4 -right-5 p-2 px-3">4</div>
-                      <img class="h-16" src="https://fakestoreapi.com/img/71li-ujtlUL._AC_UX679_.jpg" alt="">
-
-                    </div>
-                    <span class="font-bold ml-4 w-48 product_title">Mens Cotton Jacket</span>
-                  </div>
-                  <span>$ 55.99</span>
-                </div>
-              </li>
-              <li class="mb-12" key="">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center">
-                    <img class="h-16" src="https://fakestoreapi.com/img/71YXzeOuslL._AC_UY879_.jpg" alt="">
-                    <span class="font-bold ml-4 w-48 product_title">Mens Casual Slim Fit</span>
-                  </div>
-                  <span>$ 15.99</span>
-                </div>
-              </li>
             </ul>
           </div>
           <div class="amount_cal_wrap">
@@ -389,7 +366,7 @@
                 <p class="font-bold">Subtotal</p>
               </div>
               <div>
-                <p>$ <span id="total" class="font-bold">500</span></p>
+                <p>$ <span id="sub_total" class="font-bold">500</span></p>
               </div>
             </div>
             <div class="my-2 flex justify-between" style="">
@@ -414,23 +391,39 @@
                 <p class="font-bold">Total</p>
               </div>
               <div>
-                <p>$ <span id="total" class="font-bold">500</span></p>
+                <p>$ <span id="total_amount" class="font-bold">500</span></p>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-
   </div>
 </body>
-
 </html>
 <script>
   'use strict';
   const products_wrap = document.querySelector('.cart_wrap');
   const country_dropdown = document.querySelector('#country');
   const province = document.querySelector('#state');
+  const cart_wrap = document.querySelector('.cart_wrap');
+  let cart_item_count = 0;
+  let total_amount = 0;
+  const total_amount_el = document.getElementById('total_amount');
+  const sub_total_el = document.getElementById('sub_total');
+  const cart_item_count_text = document.querySelector('#cart_item_count_text');
+  const showAlert = (msg,type) => {
+    let color = 'green';
+    if(type == 'error') {
+      color = 'red';
+    }
+    Toastify({  
+    text: msg,
+    backgroundColor:color,    
+    gravity: "bottom", // `top` or `bottom`
+    duration: 3000
+  }).showToast();     
+  }
   const loadCountries = async () => {
     try {
       const res = await fetch('/public/json/countries.json');
@@ -441,53 +434,64 @@
     }
   }
   const loadProducts = async () => {
-    const url = `https://fakestoreapi.com/products`;
-    try {
-      const resJson = await fetch(url);
-      const resObj = await resJson.json();
-      return resObj;
-    } catch (err) {
-      return err;
-    }
+      const url = `https://fakestoreapi.com/products`;
+      try {
+          const resJson = await fetch(url);
+          const resObj = await resJson.json();
+          return resObj;
+      } catch (err) {
+          return err;
+      }
+  }
+  const loadCartItems = async () => {
+      let cart = [];
+      try {
+          cart = await localStorage.getItem('boat_cart') ? JSON.parse(localStorage.getItem('boat_cart')) : [];
+      } catch (error) { }
+      return cart;
   }
   let countries = [];
-  window.addEventListener('DOMContentLoaded', (event) => {
-  Toastify({  
-    text: "Email can not be blank!",
-    backgroundColor:'red',    
-    gravity: "bottom", // `top` or `bottom`
-    duration: 3000
-  }).showToast();    
+  window.addEventListener('DOMContentLoaded', (event) => {   
     (async () => {
       countries = await loadCountries();
       console.log(countries);
     })();
-    // (async () => {
-    //     try {
-    //         const final_products = await loadProducts();
-    //         console.log(final_products);
-    //         for await (let product of final_products) {
-    //             const content = ` <li class="mb-12" key="">
-    //             <div class="flex items-center justify-between">
-    //                 <div class="flex items-center">
-    //                     <img class="h-16" src="https://cdn.shopify.com/s/files/1/0057/8938/4802/products/main2_1_720x.png?v=1623738250"  alt="" />
-    //                     <span class="font-bold ml-4 w-48"> Tshirt </span>
-    //                 </div>
-    //                 <div>
-    //                    <button  class="bg-yellow-500 px-4 py-2 rounded-full leading-none">-</button>
-    //                    <b class="px-4">4</b>
-    //                    <button  class="bg-yellow-500 px-4 py-2 rounded-full leading-none">+</button>
-    //                 </div>
-    //                 <span>₹ 100</span>
-    //                 <button class="bg-red-500 px-4 py-2 rounded-full leading-none text-white">Delete</button>
-    //             </div>
-    //         </li>  `;
-    //             products_wrap.insertAdjacentHTML('beforeend', content);
-    //         }
-    //     } catch (err) {
-    //         console.log(err);
-    //     }
-    // })();
+        // update cart cart_item_count code end        
+        (async () => {
+            try {
+                const cart = await loadCartItems();
+                if (cart.length) {
+                    const final_products = await loadProducts();
+                    for await (let cart_item of cart) {
+                        const id = cart_item.product_id;
+                        const quantity = cart_item.quantity;
+                        const product = final_products.filter(product => String(product.id) === String(id))[0];
+                        const product_price = product.price;
+                        total_amount += product_price*quantity;
+                        const content = `
+                          <li class="mb-12" key="">
+                                <div class="flex items-center justify-between">
+                                  <div class="flex items-center">
+                                    <div class="relative border p-4">
+                                      <div class="absolute bg-black text-white rounded-full -top-4 -right-5 p-1 px-3">${quantity}</div>
+                                      <img class="h-16" src="${product.image}" alt="">
+                                    </div>
+                                    <span class="font-bold ml-4 w-48 product_title">${product.title}</span>
+                                  </div>
+                                  <span>$ ${product.price}</span>
+                                </div>
+                          </li>`;
+                        cart_wrap.insertAdjacentHTML('beforeend', content);
+                    }
+                total_amount_el.textContent = total_amount.toFixed();
+                sub_total_el.textContent = total_amount.toFixed();
+                } else {
+                    cart_wrap.insertAdjacentHTML('beforeend', '<p class="text-center">No item in cart</p>');
+                }
+            } catch (err) {
+                console.log(err);
+            }
+        })();
 
   });
   country_dropdown.addEventListener('change', (event) => {
@@ -509,4 +513,76 @@
       }
     }
   })
+
+
+  // final checkout code 
+  const proceedCheckout = () => {
+  const email = document.getElementById("email").value;
+  const first_name = document.getElementById("first_name").value;
+  const last_name = document.getElementById("last_name").value;
+  const address = document.getElementById("address").value;
+  const city = document.getElementById("city").value;
+  const country = document.getElementById("country").value;
+  const state = document.getElementById("state").value;
+  if (
+    email == 0 ||
+    first_name == 0 ||
+    last_name == 0 ||
+    address == 0 ||
+    city == 0 ||
+    zip == 0 ||
+    country == 0 ||
+    country == 'Country' ||      
+    state == 0 ||
+    state == 'State'      
+  ) {
+    showAlert('Contact Information cannot remain empty','error');    
+  } else {
+    alert('Thank you!');
+    // var user = firebase.auth().currentUser;
+    // if (user) {
+    //   // User is signed in.
+    // } else {
+    //   // No user is signed in.
+    // }
+
+    // db.doc(`users/${user.email}`)
+    //   .collection("userAddressInfo")
+    //   .doc()
+    //   .set({
+    //     name: name,
+    //     telephone: telephone,
+    //     address: address,
+    //     city: city,
+    //     zipCode: zipCode,
+    //     state: state,
+    //   })
+    //   .then(() => {
+    //     window.location = "payment.html";
+    //     console.log("location reload");
+    //   });
+    // // save orders from cart info to new document
+    // var user = firebase.auth().currentUser;
+    // console.log(user.uid);
+    // let userDoc = db.doc(`users/${user.email}`);
+    // userDoc
+    //   .collection("usercart")
+    //   .get()
+    //   .then((data) => {
+    //     let items = [];
+    //     data.forEach((doc) => {
+    //       console.log(doc.exist);
+    //       items.push({
+    //         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    //         name: doc.data().name,
+    //         price: doc.data().price,
+    //       });
+    //     });
+    //     for (let i = 0; i < items.length; i++) {
+    //       userDoc.collection(`orders`).add(items[i]);
+    //       userDoc.collection(`usercart`).doc(items[i].name).delete();
+    //     }
+    //   });
+  }
+};  
 </script>
